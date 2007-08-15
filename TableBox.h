@@ -6,8 +6,13 @@
 #endif
 
 #define NONE		0
+
 #define EXPAND	2
 #define FILL		4
+
+#define TABLEBOX	1
+#define VBOX		2
+#define HBOX		3
 
 #include <cstdio>
 #include <cstdlib>
@@ -39,31 +44,51 @@ namespace fltk {
 
 	class TableBox : public Group {
 		private:
+			int __type;
+			uint cur_row, cur_col;
 			TABLE * t;
-			void layout ();
+			
 		
 		public:
 			TableBox (int _x, int _y, int _w, int _h);
 			~TableBox ();
-			
+		
+			void layout ();		
+		
 			// get
-			void Size (uint & _cols, uint & _rows);
+			int Type ();
+			void Size (uint & _rows, uint & _cols);
+			uint Size ();
+			uint Rows ();
+			uint Cols ();
 			CELL_GAP * Gap ();
 			void Gap (uint & _w, uint & _h);
-			fltk::Widget * Widget (uint cols, uint rows);
-			TABLE_CELL * Cell (uint cols, uint rows);
+			fltk::Widget * Widget (uint _row, uint _col);
+			TABLE_CELL * Cell (uint _row, uint _col);
 			
 			// set
-			void Size (uint _cols, uint _rows);
+			void Type (int _type);
+			void Size (uint _rows, uint _cols);
+			void Size (uint _len);
+			void Rows (uint _len);
+			void Cols (uint _len);
+			void AddCell (uint _len);
 			void Gap (CELL_GAP * _gap);
 			void Gap (uint _w, uint _h);
 			void Widget (fltk::Widget * _widget, uint cols, uint rows);
-			void Cell (TABLE_CELL * _cell, uint cols, uint rows);
+			void Cell (TABLE_CELL * _cell, uint _row, uint _col);
 			void Attach (
 				fltk::Widget * _widget,
 				uint _col, uint _row,
 				uint _w = 100, uint _h = 25,
-				uint _x_prop = FILL, uint _y_prop = FILL,
+				uint _x_prop = FILL, uint _y_prop = NONE,
+				uint _x_span = 1, uint _y_span = 1,
+				float _x_align = 0.0f, float _y_align = 0.0f
+			);
+			void Add (
+				fltk::Widget * _widget,
+				uint _w = 100, uint _h = 25,
+				uint _x_prop = FILL, uint _y_prop = NONE,
 				uint _x_span = 1, uint _y_span = 1,
 				float _x_align = 0.0f, float _y_align = 0.0f
 			);

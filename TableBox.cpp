@@ -3,7 +3,11 @@
 TableBox::TableBox (int _x, int _y, int _w, int _h) : Group (_x, _y, _w, _h) {
 	t = new TABLE;
 	t->gap = new CELL_GAP;
+	Type (TABLEBOX);
+	Size (1, 1);
 	Gap (5, 5);
+	cur_row = 0;
+	cur_col = 0;
 }
 
 TableBox::~TableBox () {
@@ -22,8 +26,10 @@ void TableBox::layout () {
 	uint x_fixed_size_all_items = 0;
 	uint y_fixed_size_all_items = 0;
 	
-	uint _x, _y, _w, _h;
-	_x = _y = _w = _h = 0;
+	uint _ox = 0;
+	uint _oy = 0;
+	uint _x = 0;
+	uint _y = _oy;
 	
 	// x-axes
 	for (uint i = 0; i < t->cols; i++) {
@@ -124,7 +130,11 @@ void TableBox::layout () {
 			Ym = (uint)(t->cell [j][i].y_align * (Hv - Hm));
 			 
 			// resizing / positioning
-			if (t->cell [j][i].o != NULL) t->cell [j][i].o->resize (_x + Xm, _y + Ym, Wm, Hm);
+			if (t->cell [j][i].o != NULL)
+				t->cell [j][i].o->resize (_x + Xm, _y + Ym, Wm, Hm);
+			
+			if (t->cell [j][i].o && t->cell [j][i].o->is_group () && !t->cell [j][i].o->is_window ())
+				t->cell [j][i].o->layout ();
 			
 			// update X
 			if (x_fixed_size_item [i] > 0) _x += x_fixed_size_item [i] + t->gap->w;
@@ -132,7 +142,7 @@ void TableBox::layout () {
 		}
 		
 		// beginning of next row
-		_x = 0;
+		_x = _ox;
 		
 		// update Y
 		if (y_fixed_size_item [j] > 0) _y += y_fixed_size_item [j] + t->gap->h;
@@ -141,9 +151,30 @@ void TableBox::layout () {
 }
 
 // get
+int TableBox::Type () {
+	return __type;
+}
+
 void TableBox::Size (uint & _rows, uint & _cols) {
 	_rows = t->rows;
 	_cols = t->cols;
+}
+
+uint TableBox::Size () {
+	if (Type () == VBOX)
+		return t->rows;
+	else if (Type () == HBOX)
+		return t->cols;
+	else
+		return 0;
+}
+
+uint TableBox::Rows () {
+	return t->rows;
+}
+
+uint TableBox::Cols () {
+	return t->rows;
 }
 
 CELL_GAP * TableBox::Gap () {
@@ -155,15 +186,19 @@ void TableBox::Gap (uint & _w, uint & _h) {
 	_h = t->gap->h;
 }
 
-fltk::Widget * TableBox::Widget (uint _rows, uint _cols) {
-	return t->cell [_rows][_cols].o;
+fltk::Widget * TableBox::Widget (uint _row, uint _col) {
+	return t->cell [_row][_col].o;
 }
 
-TABLE_CELL * TableBox::Cell (uint _rows, uint _cols) {
-	return & t->cell [_rows][_cols];
+TABLE_CELL * TableBox::Cell (uint _row, uint _col) {
+	return & t->cell [_row][_col];
 }
 
 // set
+void TableBox::Type (int _type) {
+	__type = _type;
+}
+
 void TableBox::Size (uint _rows, uint _cols) {
 	t->rows = _rows;
 	t->cols = _cols;
@@ -172,6 +207,29 @@ void TableBox::Size (uint _rows, uint _cols) {
 	
 	for (uint j=0; j<t->rows; j++)
 		t->cell [j].resize (t->cols);
+}
+
+void TableBox::Size (uint _len) {
+	if (Type () == VBOX)
+		Rows (_len);
+	else if (Type () == HBOX)
+		Cols (_len);
+	else
+		printf ("TableBox ... not recognized BOX type\n");
+}
+
+void TableBox::Rows (uint _len) {
+	t->rows = _len;
+	Size ((uint)t->rows, (uint)t->cols);
+}
+
+void TableBox::Cols (uint _len) {
+	t->cols = _len;
+	Size ((uint)t->rows, (uint)t->cols);
+}
+
+void TableBox::AddCell (uint _len) {
+	Size (Size () + 1);
 }
 
 void TableBox::Gap (CELL_GAP * _gap) {
@@ -206,6 +264,34 @@ void TableBox::Attach (
 	t->cell [_row] [_col].y_fill = _y_prop & FILL;
 	t->cell [_row] [_col].x_span = _x_span;
 	t->cell [_row] [_col].y_span = _y_span;
+	
+	for (uint j = 0; j < _y_span; j++) {
+		for (uint i = 0; i < _x_span; i++) {
+			t->cell [_row+j] [_col+i].x_align = _x_align;
+			t->cell [_row+j] [_col+i].y_align = _y_align;
+			t->cell [_row+j] [_col+i].x_expand = _x_prop & EXPAND;
+			t->cell [_row+j] [_col+i].y_expand = _y_prop & EXPAND;
+		}
+	}
+}
+
+void TableBox::Add (
+	fltk::Widget * _widget,
+	uint _w, uint _h,
+	uint _x_prop, uint _y_prop,
+	uint _x_span, uint _y_span,
+	float _x_align, float _y_align
+) {
+	uint _row = cur_row;
+	uint _col = cur_col;
+	
+	t->cell [_row] [_col].o = _widget;
+	t->cell [_row] [_col].w = _w;
+	t->cell [_row] [_col].h = _h;
+	t->cell [_row] [_col].x_fill = _x_prop & FILL;
+	t->cell [_row] [_col].y_fill = _y_prop & FILL;
+	t->cell [_row] [_col].x_span = _x_span;
+	t->cell [_row] [_col].y_span = _y_span;
 	t->cell [_row] [_col].x_align = _x_align;
 	t->cell [_row] [_col].y_align = _y_align;
 	
@@ -215,4 +301,12 @@ void TableBox::Attach (
 			t->cell [_row+j] [_col+i].y_expand = _y_prop & EXPAND;
 		}
 	}
+	
+	if (Type () == VBOX)
+		cur_row++;
+	else if (Type () == HBOX)
+		cur_col++;
+	else
+		return;
+
 }
