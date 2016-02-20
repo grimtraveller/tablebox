@@ -1,0 +1,3 @@
+The **TableBox** manages a group of widgets that are arranged in rows and columns, making it easy to align many widgets next to each other, horizontally and vertically. The size of a table can be changed using the Size() method. Widgets can be added to a table using the Attach() method. The gaps between all rows or columns can be changed by calling the Gap() method.
+
+Supports both row and column **expanding, filling, spanning** and **aligning** in both X and Y directions. The whole project was inspired by HTML table and GTK+ table widget.
